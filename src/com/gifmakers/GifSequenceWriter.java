@@ -13,14 +13,17 @@ package com.gifmakers;
 import javax.imageio.*;
 import javax.imageio.metadata.*;
 import javax.imageio.stream.*;
+
 import java.awt.image.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Iterator;
 
-public class GifSequenceWriter {
+public class GifSequenceWriter implements Runnable {
 	protected ImageWriter gifWriter;
 	protected ImageWriteParam imageWriteParam;
 	protected IIOMetadata imageMetaData;
+	protected ArrayList<BufferedImage> imageList;
 
 	/**
 	 * Creates a new GifSequenceWriter
@@ -39,8 +42,10 @@ public class GifSequenceWriter {
 	 * @author Elliot Kroo (elliot[at]kroo[dot]net)
 	 */
 	public GifSequenceWriter(ImageOutputStream outputStream, int imageType,
-			int timeBetweenFramesMS, boolean loopContinuously)
+			int timeBetweenFramesMS, boolean loopContinuously, ArrayList<BufferedImage> bi)
 			throws IIOException, IOException {
+		
+		imageList = bi;
 		// my method to create a writer
 		gifWriter = getWriter();
 		imageWriteParam = gifWriter.getDefaultWriteParam();
@@ -143,6 +148,39 @@ public class GifSequenceWriter {
 		IIOMetadataNode node = new IIOMetadataNode(nodeName);
 		rootNode.appendChild(node);
 		return (node);
+	}
+
+	@Override
+	public void run() {
+
+		System.out.printf("Starting to write to sequence\n");
+
+		while (imageList.isEmpty()) {
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		while (imageList.isEmpty() == false) {		
+			try {
+				writeToSequence(imageList.remove(0));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		System.out.printf("All done in GIF creation thread!\n");
+		try {
+			close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
 	}
 
 }
