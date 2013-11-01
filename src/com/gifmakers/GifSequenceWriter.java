@@ -24,6 +24,7 @@ public class GifSequenceWriter implements Runnable {
 	protected ImageWriteParam imageWriteParam;
 	protected IIOMetadata imageMetaData;
 	protected ArrayList<BufferedImage> imageList;
+	protected Converter callerObject;
 
 	/**
 	 * Creates a new GifSequenceWriter
@@ -42,9 +43,9 @@ public class GifSequenceWriter implements Runnable {
 	 * @author Elliot Kroo (elliot[at]kroo[dot]net)
 	 */
 	public GifSequenceWriter(ImageOutputStream outputStream, int imageType,
-			int timeBetweenFramesMS, boolean loopContinuously, ArrayList<BufferedImage> bi)
-			throws IIOException, IOException {
-		
+			int timeBetweenFramesMS, boolean loopContinuously,
+			ArrayList<BufferedImage> bi) throws IIOException, IOException {
+
 		imageList = bi;
 		// my method to create a writer
 		gifWriter = getWriter();
@@ -155,21 +156,35 @@ public class GifSequenceWriter implements Runnable {
 
 		System.out.printf("Starting to write to sequence\n");
 
-		while (imageList.isEmpty()) {
+		while (Converter.biList.isEmpty()) {
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		
-		while (imageList.isEmpty() == false) {		
-			try {
-				writeToSequence(imageList.remove(0));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		while (true) {
+			if (Converter.biList.isEmpty() == false) {
+				try {
+					writeToSequence(Converter.biList.remove(0));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if (Converter.biList.isEmpty() && Converter.capturationDone == false) {
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			if (Converter.biList.isEmpty() && Converter.capturationDone) {
+				break;
 			}
 		}
 		System.out.printf("All done in GIF creation thread!\n");
@@ -179,8 +194,7 @@ public class GifSequenceWriter implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
+
 	}
 
 }
