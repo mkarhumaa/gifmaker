@@ -1,11 +1,14 @@
 package com.gifmakers;
 
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.TimeZone;
 
 import javax.imageio.ImageIO;
@@ -17,20 +20,16 @@ import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.Global;
-import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IStream;
-import com.xuggle.xuggler.IStreamCoder;
 
 public class Converter {
 
 	public static volatile boolean capturationDone = false;
+	public static final double RESIZE_FACTOR = 0.1;
 	public static double FRAME_RATE;
-	//private static String inputFilename;
 	private static String outputFilePrefix;
 
 	static String firstImage = "";
 	public static ArrayList<BufferedImage> biList;
-	//private static String[] interval;
 	private static long startTime;
 	private static long endTime;
 	// The video stream index, used to ensure we display frames from one and
@@ -44,7 +43,7 @@ public class Converter {
 
 	public static void main(String[] args) {
 		try {
-			convert("/home/matias/Downloads/000.ts", "/home/matias/MMS/mysnapshot", 10, "00:00:23,000 --> 00:00:24,000");
+			convert("/home/matias/Downloads/000.ts", "/home/matias/MMS/mysnapshot", 10, "00:00:00,000 --> 00:01:17,000");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -81,7 +80,7 @@ public class Converter {
 			System.out.println("Error in time interval.");
 			return;
 		}
-		// Custom date format 00:00:10,500 --> 00:00:13,000"
+		// Custom date format, eg. 00:00:10,500 --> 00:00:13,000"
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");  
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
 
@@ -101,15 +100,6 @@ public class Converter {
 		mediaReader
 				.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
 		
-		// here i am trying to do faster seeking
-		//IContainer container = mediaReader.getContainer();
-		//IStream stream = container.getStream(0);
-		//IStreamCoder coder = stream.getStreamCoder();
-		//double inputFrameRate = coder.getFrameRate().getDouble();
-		//long seekTo = (long) (((container.getDuration() / 1000) * inputFrameRate) * 22);
-		//container.seekKeyFrame(0, 0, seekTo, container.getDuration(),
-	    //        IContainer.SEEK_FLAG_FRAME);
-		
 		mediaReader.addListener(new ImageSnapListener());
 
 		// Create output stream
@@ -119,33 +109,35 @@ public class Converter {
 		System.out.printf("Starting to create animated gif\n");
 		// Create new instance of GifSequenceWriter and start it in new thread
 		Thread t = new Thread(new GifSequenceWriter(output, 5,
-				(int) (1000 / FRAME_RATE), false, biList));
+				(int) (1000 / FRAME_RATE), true, biList));
 		t.start();
 
 		System.out.println("Starting to extract frames from video file.");
-
+		Date t0 = new Date();
+		
 		// read out the contents of the media file and
 		// dispatch events to the attached listener
 		try {
 			while (mediaReader.readPacket() == null && !capturationDone) {
-				if (biList.size() > 200) {
+				if (biList.size() > (100/RESIZE_FACTOR)) {
 					Thread.sleep(3000);
 				}
 			}
 		} catch (RuntimeException e) {
 			// Do nothing
 		}
-		//capturationDone = true;
-		System.out
-				.println("Frames captured. Waiting for other thread to complete.");
+		
+		Date t1 = new Date();
+		System.out.println("Frames captured. Waiting for other thread to complete. It took " + (t1.getTime() - t0.getTime()) + "ms.");
 		while (t.isAlive()) {
-			System.out.println("Still waiting...");
 			// Wait maximum of 3 second
 			// for MessageLoop thread
 			// to finish.
 			t.join(3000);
 		}
-		System.out.println("Finally!");
+		Date t2 = new Date();
+		System.out.println("Finally! It took " + (t2.getTime() - t0.getTime()) + "ms.");
+		
 
 		output.close();
 	}
@@ -154,6 +146,7 @@ public class Converter {
 
 		public void onVideoPicture(IVideoPictureEvent event) {
 			if (event.getStreamIndex() != mVideoStreamIndex) {
+				System.out.println("Streamindex: " + event.getStreamIndex());
 				// if the selected video stream id is not yet set, go ahead an
 				// select this lucky video stream
 				if (mVideoStreamIndex == -1)
@@ -178,9 +171,7 @@ public class Converter {
 	
 				// if it's time to write the next frame
 				if (event.getTimeStamp() - mLastPtsWrite >= MICRO_SECONDS_BETWEEN_FRAMES) {
-					if (firstImage.equals("") == true) {
-						firstImage = dumpImageToFile(event.getImage());
-					}
+					
 					// String outputFilename = dumpImageToFile(event.getImage());
 					addImageToBuffer(event.getImage());
 	
@@ -196,7 +187,22 @@ public class Converter {
 		}
 
 		private void addImageToBuffer(BufferedImage image) {
-			biList.add(image);
+			int w, h;
+			BufferedImage resized;
+			//before = Converter.biList.remove(0);
+			w = image.getWidth();
+			h = image.getHeight();
+			resized = new BufferedImage((int)(RESIZE_FACTOR*w), (int)(RESIZE_FACTOR*h), BufferedImage.TYPE_INT_ARGB);
+			AffineTransform at = new AffineTransform();
+			at.scale(RESIZE_FACTOR, RESIZE_FACTOR);
+			AffineTransformOp scaleOp = 
+			   new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
+			resized = scaleOp.filter(image, resized);
+			
+			biList.add(resized);
+			if (firstImage.equals("") == true) {				
+				firstImage = dumpImageToFile(resized);
+			}
 		}
 
 		private String dumpImageToFile(BufferedImage image) {

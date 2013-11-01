@@ -13,7 +13,6 @@ package com.gifmakers;
 import javax.imageio.*;
 import javax.imageio.metadata.*;
 import javax.imageio.stream.*;
-
 import java.awt.image.*;
 import java.io.*;
 import java.util.ArrayList;
@@ -164,7 +163,6 @@ public class GifSequenceWriter implements Runnable {
 				e.printStackTrace();
 			}
 		}
-		
 		while (true) {
 			if (Converter.biList.isEmpty() == false) {
 				try {
