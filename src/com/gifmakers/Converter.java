@@ -30,6 +30,7 @@ public class Converter {
 
 	static String firstImage = "";
 	public static ArrayList<BufferedImage> biList;
+	// startTime and endTime in microseconds
 	private static long startTime;
 	private static long endTime;
 	// The video stream index, used to ensure we display frames from one and
@@ -53,7 +54,16 @@ public class Converter {
 		}
 	}
 	
-	// input, output, frame_rate, time_interval
+	/**
+	 * Converts given time interval of MPEG2 ts video segments to animated GIF.
+	 * @param inputFile MPEG2 ts video file to be converted
+	 * @param outputFile The prefix for output file. Method creates a animation and thumbnail using this prefix.
+	 * @param frameRate Frame rate of the output GIF animation.
+	 * @param timeInterval Time interval to be captured. Format is same than in SRT files: 00:00:00,000 --> 00:01:17,000
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws RuntimeException
+	 */
 	public static void convert(String inputFile, String outputFile, double frameRate, String timeInterval ) throws IOException,
 			InterruptedException, RuntimeException {
 		if (inputFile.equals("")) {
