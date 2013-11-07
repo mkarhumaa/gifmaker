@@ -5,11 +5,14 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
@@ -164,7 +167,86 @@ public class Converter {
 
 		output.close();
 	}
+        
+        /**
+	 * Parses time frames from an SRT file based on given segment numbers
+	 * 
+	 * @param inputSRT
+	 *            SRT file to be parsed
+	 * @param segmentNumbers
+	 *            List of subtitle segment numbers
+         *            Can be given in the form "x-y" or one by one
+	 * @throws IOException
+	 * @return timeFrames
+         *            List of time frames parsed from the SRT
+	 */
+        public static List<String> parseSRT(String inputSRT, List<String> segmentNumbers){
 
+            BufferedReader SRTreader = null;
+            String timeFrame = null;
+            String totalTimeFrame;
+            int elementIndex;
+
+            List<String> segments = new ArrayList<>();
+            List<String> multipleSegments = new ArrayList<>();
+            List<String> timeFrames = new ArrayList<>();
+            List<String> longTimeFrames = new ArrayList<>();
+
+
+            for (String item : segmentNumbers){
+                if (item.contains("-")){
+                    multipleSegments.add(item.split("-")[0]);
+                    multipleSegments.add(item.split("-")[1]);
+                }
+                else
+                    segments.add(item);
+            }
+
+            try {
+                FileReader file = new FileReader(inputSRT);
+                SRTreader = new BufferedReader(file);
+
+                String line;
+
+                while(( line = SRTreader.readLine()) != null)
+                {
+                    if (segments.contains(line)){
+                        timeFrame = SRTreader.readLine();
+                        timeFrames.add(timeFrame);
+                    }
+                    if (multipleSegments.contains(line)){
+                        elementIndex = multipleSegments.indexOf(line);
+                        timeFrame = SRTreader.readLine();
+                        longTimeFrames.add(timeFrame);
+                        if ((longTimeFrames.size()&1) == 0){
+                            totalTimeFrame = timeFrameParse(longTimeFrames.get(elementIndex-1),longTimeFrames.get(elementIndex));
+                            timeFrames.add(totalTimeFrame);
+                        }
+                    }
+                }
+                SRTreader.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return timeFrames;
+        }
+        
+        private static String timeFrameParse(String timeFrame1, String timeFrame2)
+        {
+            String totalTimeFrame;
+            String startTime;
+            String stopTime;
+
+            String[] startStop = timeFrame1.split(" --> ");
+            startTime = timeFrame1.split(" --> ")[0];
+            stopTime = timeFrame2.split(" --> ")[1];
+
+            totalTimeFrame = startTime + " --> " + stopTime;
+            
+            return totalTimeFrame;
+        }
+        
 	/**
 	 * Nested listener class for listening PictureEvents from IMediaReader.
 	 * 
