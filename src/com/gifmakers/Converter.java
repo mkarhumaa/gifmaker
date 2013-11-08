@@ -31,7 +31,7 @@ public class Converter {
 	public static double FRAME_RATE;
 	private static String outputFilePrefix;
 
-	static String firstImage = "";
+	static String firstImage ;//= "";
 	public static ArrayList<BufferedImage> biList;
 	// startTime and endTime in microseconds
 	private static long startTime;
@@ -41,15 +41,27 @@ public class Converter {
 	private static int mVideoStreamIndex = -1;
 
 	// Time of last frame write
-	private static long mLastPtsWrite = Global.NO_PTS;
-	private static long mFirstFrame = -1;
+	private static long mLastPtsWrite;// = Global.NO_PTS;
+	private static long mFirstFrame;// = -1;
 	public static long MICRO_SECONDS_BETWEEN_FRAMES;
 
 	public static void main(String[] args) {
+		
+		List<String> srtSegments = new ArrayList<>();
+		List<String> timeIntervals;
+		srtSegments.add("1");
+		srtSegments.add("3-5");
+		
+		timeIntervals = parseSRT("/home/matias/MMS/uutiset/1001_20131104183000.srt", srtSegments);
+		//file:///home/matias/MMS/uutiset/1001_20131104183000.mp4
 		try {
-			convert("/home/matias/Downloads/000.ts",
-					"/home/matias/MMS/mysnapshot", 10,
-					"00:01:00,000 --> 00:01:17,000");
+			String outputprefix;
+			for (int i=0; i<timeIntervals.size(); i++) {
+				outputprefix = "/home/matias/MMS/mysnapshot" + i; 
+				convert("/home/matias/MMS/uutiset/1001_20131104183000.mp4",
+					"", 10,
+					timeIntervals.get(i));
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -85,7 +97,9 @@ public class Converter {
 		}
 
 		if (outputFile.equals("")) {
-			outputFilePrefix = "defaultoutput";
+			outputFilePrefix = inputFile.split(".mp4")[0];
+			System.out.println(outputFilePrefix);
+			//outputFilePrefix = "defaultoutput";
 		} else {
 			outputFilePrefix = outputFile;
 		}
@@ -103,6 +117,11 @@ public class Converter {
 			System.out.println("Error in time interval.");
 			return;
 		}
+		firstImage = "";
+		mLastPtsWrite = Global.NO_PTS;
+		mFirstFrame = -1;
+		capturationDone = false;
+		
 		// Custom date format, eg. 00:00:10,500 --> 00:00:13,000"
 		SimpleDateFormat format = new SimpleDateFormat(
 				"yyyy-MM-dd HH:mm:ss,SSS");
@@ -115,7 +134,7 @@ public class Converter {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
+		
 		biList = new ArrayList<BufferedImage>();
 
 		IMediaReader mediaReader = ToolFactory.makeReader(inputFile);
@@ -127,6 +146,7 @@ public class Converter {
 		mediaReader.addListener(new ImageSnapListener());
 
 		// Create output stream
+		outputFilePrefix += "_" + startTime + "-" + endTime;
 		ImageOutputStream output = new FileImageOutputStream(new File(
 				outputFilePrefix + ".gif"));
 
