@@ -31,7 +31,7 @@ public class Converter {
 	public static double FRAME_RATE;
 	private static String outputFilePrefix;
 
-	static String firstImage ;//= "";
+	static String firstImage ;
 	public static ArrayList<BufferedImage> biList;
 	// startTime and endTime in microseconds
 	private static long startTime;
@@ -41,26 +41,57 @@ public class Converter {
 	private static int mVideoStreamIndex = -1;
 
 	// Time of last frame write
-	private static long mLastPtsWrite;// = Global.NO_PTS;
-	private static long mFirstFrame;// = -1;
+	private static long mLastPtsWrite;
+	private static long mFirstFrame;
 	public static long MICRO_SECONDS_BETWEEN_FRAMES;
 
 	public static void main(String[] args) {
 		
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
-		srtSegments.add("1");
-		srtSegments.add("3-5");
+		String videoFile, srtFile = "";
 		
-		timeIntervals = parseSRT("/home/matias/MMS/uutiset/1001_20131104183000.srt", srtSegments);
-		//file:///home/matias/MMS/uutiset/1001_20131104183000.mp4
+		if (args.length < 3) {
+			// Illegar arguments
+			System.out.println("Illegal command line arguments.");
+			//TODO Write instructions
+			System.out.println("Some instructions for usage...");
+			return;
+		} else {
+			// Check that files exist
+			videoFile = args[0];
+			srtFile = args[1];
+			
+			File vf = new File(videoFile);
+			if (!vf.exists()) {
+				System.out.println(videoFile + " does not exist!");
+				return;
+			}
+			
+			File sf = new File(srtFile);
+			if (!sf.exists()) {
+				System.out.println(srtFile + " does not exist!");
+				return;
+			}
+			
+			//Create srt segment array
+			for (int i=2; i<args.length; i++) {
+				//Check first that arguments are legal
+				if (args[i].matches("\\d+(-\\d+)?")) {
+					// This regex matches for ecample following: "1", "11", "1-1", "11-11"
+					srtSegments.add(args[i]);
+				} else {
+					System.out.println(args[i] + " is not in srt segment number format.");
+					return;
+				}
+			}
+			
+		}
+		
+		timeIntervals = parseSRT(srtFile, srtSegments);
 		try {
-			String outputprefix;
 			for (int i=0; i<timeIntervals.size(); i++) {
-				outputprefix = "/home/matias/MMS/mysnapshot" + i; 
-				convert("/home/matias/MMS/uutiset/1001_20131104183000.mp4",
-					"", 10,
-					timeIntervals.get(i));
+				convert(videoFile, 10, timeIntervals.get(i));
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -76,9 +107,6 @@ public class Converter {
 	 * 
 	 * @param inputFile
 	 *            MPEG2 ts video file to be converted
-	 * @param outputFile
-	 *            The prefix for output file. Method creates a animation and
-	 *            thumbnail using this prefix.
 	 * @param frameRate
 	 *            Frame rate of the output GIF animation.
 	 * @param timeInterval
@@ -88,20 +116,12 @@ public class Converter {
 	 * @throws InterruptedException
 	 * @throws RuntimeException
 	 */
-	public static void convert(String inputFile, String outputFile,
+	public static void convert(String inputFile,
 			double frameRate, String timeInterval) throws IOException,
 			InterruptedException, RuntimeException {
 		if (inputFile.equals("")) {
 			System.out.println("Illegal input filename.");
 			throw new RuntimeException();
-		}
-
-		if (outputFile.equals("")) {
-			outputFilePrefix = inputFile.split(".mp4")[0];
-			System.out.println(outputFilePrefix);
-			//outputFilePrefix = "defaultoutput";
-		} else {
-			outputFilePrefix = outputFile;
 		}
 
 		if (frameRate <= 0) {
@@ -115,12 +135,15 @@ public class Converter {
 		String[] interval = timeInterval.split(" --> ");
 		if (interval.length < 2) {
 			System.out.println("Error in time interval.");
-			return;
+			throw new RuntimeException();
 		}
+		
+		biList = new ArrayList<BufferedImage>();
 		firstImage = "";
 		mLastPtsWrite = Global.NO_PTS;
 		mFirstFrame = -1;
 		capturationDone = false;
+		
 		
 		// Custom date format, eg. 00:00:10,500 --> 00:00:13,000"
 		SimpleDateFormat format = new SimpleDateFormat(
@@ -134,18 +157,14 @@ public class Converter {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
-		biList = new ArrayList<BufferedImage>();
 
 		IMediaReader mediaReader = ToolFactory.makeReader(inputFile);
-
-		// stipulate that we want BufferedImages created in BGR 24bit color
 		mediaReader
 				.setBufferedImageTypeToGenerate(BufferedImage.TYPE_3BYTE_BGR);
-
 		mediaReader.addListener(new ImageSnapListener());
 
 		// Create output stream
+		outputFilePrefix = inputFile.split(".mp4")[0];
 		outputFilePrefix += "_" + startTime + "-" + endTime;
 		ImageOutputStream output = new FileImageOutputStream(new File(
 				outputFilePrefix + ".gif"));
@@ -254,11 +273,11 @@ public class Converter {
         
         private static String timeFrameParse(String timeFrame1, String timeFrame2)
         {
+        	System.out.println(timeFrame1 + " " + timeFrame2);
             String totalTimeFrame;
             String startTime;
             String stopTime;
 
-            String[] startStop = timeFrame1.split(" --> ");
             startTime = timeFrame1.split(" --> ")[0];
             stopTime = timeFrame2.split(" --> ")[1];
 
