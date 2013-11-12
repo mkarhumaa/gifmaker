@@ -10,7 +10,6 @@ import java.io.FileReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.List;
 
@@ -31,8 +30,9 @@ public class Converter {
 	public static double FRAME_RATE;
 	private static String outputFilePrefix;
 
-	static String firstImage ;
+	static String firstImage;
 	public static ArrayList<BufferedImage> biList;
+	public static ArrayList<String> masterGifList;
 	// startTime and endTime in microseconds
 	private static long startTime;
 	private static long endTime;
@@ -46,59 +46,92 @@ public class Converter {
 	public static long MICRO_SECONDS_BETWEEN_FRAMES;
 
 	public static void main(String[] args) {
-		
+
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
+		masterGifList = new ArrayList<String>();
 		String videoFile, srtFile = "";
-		
+
 		if (args.length < 3) {
-			// Illegar arguments
+			// Illegal arguments
 			System.out.println("Illegal command line arguments.");
-			//TODO Write instructions
+			// TODO Write instructions
 			System.out.println("Some instructions for usage...");
 			return;
 		} else {
 			// Check that files exist
 			videoFile = args[0];
 			srtFile = args[1];
-			
+
 			File vf = new File(videoFile);
 			if (!vf.exists()) {
 				System.out.println(videoFile + " does not exist!");
 				return;
 			}
-			
+
 			File sf = new File(srtFile);
 			if (!sf.exists()) {
 				System.out.println(srtFile + " does not exist!");
 				return;
 			}
-			
-			//Create srt segment array
-			for (int i=2; i<args.length; i++) {
-				//Check first that arguments are legal
+
+			// Create srt segment array
+			System.out.println("Parsing SRT file: " + srtFile);
+			for (int i = 2; i < args.length; i++) {
+				// Check first that arguments are legal
 				if (args[i].matches("\\d+(-\\d+)?")) {
-					// This regex matches for ecample following: "1", "11", "1-1", "11-11"
+					// This regex matches for ecample following: "1", "11",
+					// "1-1", "11-11"
 					srtSegments.add(args[i]);
 				} else {
-					System.out.println(args[i] + " is not in srt segment number format.");
+					System.out.println(args[i]
+							+ " is not in srt segment number format.");
 					return;
 				}
 			}
 			
 		}
-		
+
 		timeIntervals = parseSRT(srtFile, srtSegments);
+		System.out.println("SRT file parsed.");
+		System.out.println("Converting video file to animated GIFs: " + videoFile);
 		try {
-			for (int i=0; i<timeIntervals.size(); i++) {
+			for (int i = 0; i < timeIntervals.size(); i++) {
 				convert(videoFile, 10, timeIntervals.get(i));
 			}
+			System.out.println("Converting done.");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (RuntimeException e) {
+			System.out.println("Runtime error.");
+			return;
+		}
+	
+		ImageOutputStream masterGifOutput;
+		GifSequenceWriter masterGifWriter = null;
+
+		// Create master GIF
+		if (!masterGifList.isEmpty()) {
+			String masterGifFilename = videoFile.split(".mp4")[0] + "_master.gif";
+			System.out.println("Creating master GIF: " + masterGifFilename);
+			try {
+				masterGifOutput = new FileImageOutputStream(new File(masterGifFilename));
+				masterGifWriter = new GifSequenceWriter(masterGifOutput, 5,
+						1000, true, null);
+				for (String item : masterGifList) {
+					BufferedImage nextImage = ImageIO.read(new File(item));
+					masterGifWriter.writeToSequence(nextImage);
+				}
+				masterGifWriter.close();
+			} catch (IOException e) {
+				System.out.println("Cannot create master GIF.");
+				return;
+			}
+			System.out.println("Master GIF done.");
 		}
 	}
 
@@ -116,9 +149,9 @@ public class Converter {
 	 * @throws InterruptedException
 	 * @throws RuntimeException
 	 */
-	public static void convert(String inputFile,
-			double frameRate, String timeInterval) throws IOException,
-			InterruptedException, RuntimeException {
+	public static void convert(String inputFile, double frameRate,
+			String timeInterval) throws IOException, InterruptedException,
+			RuntimeException {
 		if (inputFile.equals("")) {
 			System.out.println("Illegal input filename.");
 			throw new RuntimeException();
@@ -137,14 +170,13 @@ public class Converter {
 			System.out.println("Error in time interval.");
 			throw new RuntimeException();
 		}
-		
+
 		biList = new ArrayList<BufferedImage>();
 		firstImage = "";
 		mLastPtsWrite = Global.NO_PTS;
 		mFirstFrame = -1;
 		capturationDone = false;
-		
-		
+
 		// Custom date format, eg. 00:00:10,500 --> 00:00:13,000"
 		SimpleDateFormat format = new SimpleDateFormat(
 				"yyyy-MM-dd HH:mm:ss,SSS");
@@ -169,14 +201,10 @@ public class Converter {
 		ImageOutputStream output = new FileImageOutputStream(new File(
 				outputFilePrefix + ".gif"));
 
-		System.out.printf("Starting to create animated gif\n");
 		// Create new instance of GifSequenceWriter and start it in new thread
 		Thread t = new Thread(new GifSequenceWriter(output, 5,
 				(int) (1000 / FRAME_RATE), true, biList));
 		t.start();
-
-		System.out.println("Starting to extract frames from video file.");
-		Date t0 = new Date();
 
 		// read out the contents of the media file and
 		// dispatch events to the attached listener
@@ -188,104 +216,96 @@ public class Converter {
 			}
 		} catch (RuntimeException e) {
 			// Do nothing
+			System.out.println("Runtime exception");
+			e.printStackTrace();
 		}
-
-		Date t1 = new Date();
-		System.out
-				.println("Frames captured. Waiting for other thread to complete. It took "
-						+ (t1.getTime() - t0.getTime()) + "ms.");
+		
 		while (t.isAlive()) {
 			// Wait maximum of 3 second
 			// for GifSequenceWriter thread
 			// to finish.
 			t.join(3000);
 		}
-		Date t2 = new Date();
-		System.out.println("Finally! It took " + (t2.getTime() - t0.getTime())
-				+ "ms.");
-
+		
 		output.close();
 	}
-        
-        /**
+
+	/**
 	 * Parses time frames from an SRT file based on given segment numbers
 	 * 
 	 * @param inputSRT
 	 *            SRT file to be parsed
 	 * @param segmentNumbers
-	 *            List of subtitle segment numbers
-         *            Can be given in the form "x-y" or one by one
+	 *            List of subtitle segment numbers Can be given in the form
+	 *            "x-y" or one by one
 	 * @throws IOException
-	 * @return timeFrames
-         *            List of time frames parsed from the SRT
+	 * @return timeFrames List of time frames parsed from the SRT
 	 */
-        public static List<String> parseSRT(String inputSRT, List<String> segmentNumbers){
+	public static List<String> parseSRT(String inputSRT,
+			List<String> segmentNumbers) {
 
-            BufferedReader SRTreader = null;
-            String timeFrame = null;
-            String totalTimeFrame;
-            int elementIndex;
+		BufferedReader SRTreader = null;
+		String timeFrame = null;
+		String totalTimeFrame;
+		int elementIndex;
 
-            List<String> segments = new ArrayList<>();
-            List<String> multipleSegments = new ArrayList<>();
-            List<String> timeFrames = new ArrayList<>();
-            List<String> longTimeFrames = new ArrayList<>();
+		List<String> segments = new ArrayList<>();
+		List<String> multipleSegments = new ArrayList<>();
+		List<String> timeFrames = new ArrayList<>();
+		List<String> longTimeFrames = new ArrayList<>();
 
+		for (String item : segmentNumbers) {
+			if (item.contains("-")) {
+				multipleSegments.add(item.split("-")[0]);
+				multipleSegments.add(item.split("-")[1]);
+			} else
+				segments.add(item);
+		}
 
-            for (String item : segmentNumbers){
-                if (item.contains("-")){
-                    multipleSegments.add(item.split("-")[0]);
-                    multipleSegments.add(item.split("-")[1]);
-                }
-                else
-                    segments.add(item);
-            }
+		try {
+			FileReader file = new FileReader(inputSRT);
+			SRTreader = new BufferedReader(file);
 
-            try {
-                FileReader file = new FileReader(inputSRT);
-                SRTreader = new BufferedReader(file);
+			String line;
 
-                String line;
+			while ((line = SRTreader.readLine()) != null) {
+				if (segments.contains(line)) {
+					timeFrame = SRTreader.readLine();
+					timeFrames.add(timeFrame);
+				}
+				if (multipleSegments.contains(line)) {
+					elementIndex = multipleSegments.indexOf(line);
+					timeFrame = SRTreader.readLine();
+					longTimeFrames.add(timeFrame);
+					if ((longTimeFrames.size() & 1) == 0) {
+						totalTimeFrame = timeFrameParse(
+								longTimeFrames.get(elementIndex - 1),
+								longTimeFrames.get(elementIndex));
+						timeFrames.add(totalTimeFrame);
+					}
+				}
+			}
+			SRTreader.close();
 
-                while(( line = SRTreader.readLine()) != null)
-                {
-                    if (segments.contains(line)){
-                        timeFrame = SRTreader.readLine();
-                        timeFrames.add(timeFrame);
-                    }
-                    if (multipleSegments.contains(line)){
-                        elementIndex = multipleSegments.indexOf(line);
-                        timeFrame = SRTreader.readLine();
-                        longTimeFrames.add(timeFrame);
-                        if ((longTimeFrames.size()&1) == 0){
-                            totalTimeFrame = timeFrameParse(longTimeFrames.get(elementIndex-1),longTimeFrames.get(elementIndex));
-                            timeFrames.add(totalTimeFrame);
-                        }
-                    }
-                }
-                SRTreader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return timeFrames;
+	}
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return timeFrames;
-        }
-        
-        private static String timeFrameParse(String timeFrame1, String timeFrame2)
-        {
-        	System.out.println(timeFrame1 + " " + timeFrame2);
-            String totalTimeFrame;
-            String startTime;
-            String stopTime;
+	private static String timeFrameParse(String timeFrame1, String timeFrame2) {
+		String totalTimeFrame;
+		String startTime;
+		String stopTime;
 
-            startTime = timeFrame1.split(" --> ")[0];
-            stopTime = timeFrame2.split(" --> ")[1];
+		startTime = timeFrame1.split(" --> ")[0];
+		stopTime = timeFrame2.split(" --> ")[1];
 
-            totalTimeFrame = startTime + " --> " + stopTime;
-            
-            return totalTimeFrame;
-        }
-        
+		totalTimeFrame = startTime + " --> " + stopTime;
+
+		return totalTimeFrame;
+	}
+
 	/**
 	 * Nested listener class for listening PictureEvents from IMediaReader.
 	 * 
@@ -357,6 +377,7 @@ public class Converter {
 			biList.add(resized);
 			if (firstImage.equals("") == true) {
 				firstImage = dumpImageToFile(resized);
+				masterGifList.add(firstImage);
 			}
 		}
 

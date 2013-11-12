@@ -153,8 +153,6 @@ public class GifSequenceWriter implements Runnable {
 	@Override
 	public void run() {
 
-		System.out.printf("Starting to write to sequence\n");
-
 		while (Converter.biList.isEmpty()) {
 			try {
 				Thread.sleep(500);
@@ -185,7 +183,6 @@ public class GifSequenceWriter implements Runnable {
 				break;
 			}
 		}
-		System.out.printf("All done in GIF creation thread!\n");
 		try {
 			close();
 		} catch (IOException e) {
