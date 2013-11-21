@@ -4,12 +4,16 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.List;
 
@@ -26,7 +30,7 @@ import com.xuggle.xuggler.Global;
 public class Converter {
 
 	public static volatile boolean capturationDone = false;
-	public static double RESIZE_FACTOR = 1;
+	public static double RESIZE_FACTOR;
 	public static double FRAME_RATE;
 	private static String outputFilePrefix;
 
@@ -47,6 +51,30 @@ public class Converter {
 
 	public static void main(String[] args) {
 
+		// Read the config file
+		Properties prop = new Properties();
+	    String fileName = "converter.config";
+	    InputStream is = null;
+		try {
+			is = new FileInputStream(fileName);
+			prop.load(is);
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}  catch (IOException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		// Define configurable variables initially by default values.
+		int frameRate = 5;
+		RESIZE_FACTOR = 1;
+		try {
+			frameRate = Integer.parseInt(prop.getProperty("converter.frame_rate", "5"));
+			RESIZE_FACTOR = Double.parseDouble(prop.getProperty("converter.resize_factor", "1"));
+		} catch (NumberFormatException e) {
+			System.out.println("Illegal values in config file. Using default values instead.");
+		}
+		
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
 		masterGifList = new ArrayList<String>();
@@ -56,7 +84,7 @@ public class Converter {
 			// Illegal arguments
 			System.out.println("Illegal command line arguments.");
 			// TODO Write instructions
-			System.out.println("Some instructions for usage...");
+			System.out.println("Usage:\n$ For example: $ java -jar converter.jar inputvideo.mp4 inputsrt.srt 1 2 3-5\nNote: Converter requires Java version 1.7 >= ");
 			return;
 		} else {
 			// Check that files exist
@@ -120,7 +148,7 @@ public class Converter {
 			System.out.println("Creating master GIF: " + masterGifFilename);
 			try {
 				masterGifOutput = new FileImageOutputStream(new File(masterGifFilename));
-				masterGifWriter = new GifSequenceWriter(masterGifOutput, 5,
+				masterGifWriter = new GifSequenceWriter(masterGifOutput, frameRate,
 						1000, true, null);
 				for (String item : masterGifList) {
 					BufferedImage nextImage = ImageIO.read(new File(item));
