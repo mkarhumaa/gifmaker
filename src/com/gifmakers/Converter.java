@@ -274,14 +274,16 @@ public class Converter {
 
 		BufferedReader SRTreader = null;
 		String timeFrame = null;
-		String totalTimeFrame;
+		String combinedTimeFrame;
 		int elementIndex;
 
 		List<String> segments = new ArrayList<>();
 		List<String> multipleSegments = new ArrayList<>();
 		List<String> timeFrames = new ArrayList<>();
 		List<String> longTimeFrames = new ArrayList<>();
-
+                
+                // Go through the list of segment numbers
+                // Split the input if it contains "-" and save the segment numbers to lists
 		for (String item : segmentNumbers) {
 			if (item.contains("-")) {
 				multipleSegments.add(item.split("-")[0]);
@@ -295,7 +297,8 @@ public class Converter {
 			SRTreader = new BufferedReader(file);
 
 			String line;
-
+                        
+                        // Read the srt file line by line and search for the right segments
 			while ((line = SRTreader.readLine()) != null) {
 				if (segments.contains(line)) {
 					timeFrame = SRTreader.readLine();
@@ -306,10 +309,10 @@ public class Converter {
 					timeFrame = SRTreader.readLine();
 					longTimeFrames.add(timeFrame);
 					if ((longTimeFrames.size() & 1) == 0) {
-						totalTimeFrame = timeFrameParse(
-								longTimeFrames.get(elementIndex - 1),
-								longTimeFrames.get(elementIndex));
-						timeFrames.add(totalTimeFrame);
+						combinedTimeFrame = combineFrames(
+                                                                    longTimeFrames.get(elementIndex - 1),
+                                                                    longTimeFrames.get(elementIndex));
+						timeFrames.add(combinedTimeFrame);
 					}
 				}
 			}
@@ -320,18 +323,26 @@ public class Converter {
 		}
 		return timeFrames;
 	}
-
-	private static String timeFrameParse(String timeFrame1, String timeFrame2) {
-		String totalTimeFrame;
+        /**
+	 * Combines two separate time frames' start and end times into one time frame
+	 * 
+	 * @param timeFrame1
+	 *            First time frame (e.g. "00:00:05,000 --> 00:00:09,693")
+	 * @param timeFrame2
+	 *            Second time frame (e.g. "00:00:10,000 --> 00:00:11,000")
+	 * @return Combined time frame in string format (e.g. "00:00:05,000 --> 00:00:11,000")
+	 */
+	private static String combineFrames(String timeFrame1, String timeFrame2) {
+		String combinedTimeFrame;
 		String startTime;
 		String stopTime;
 
 		startTime = timeFrame1.split(" --> ")[0];
 		stopTime = timeFrame2.split(" --> ")[1];
 
-		totalTimeFrame = startTime + " --> " + stopTime;
+		combinedTimeFrame = startTime + " --> " + stopTime;
 
-		return totalTimeFrame;
+		return combinedTimeFrame;
 	}
 
 	/**
