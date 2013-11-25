@@ -30,13 +30,11 @@ import com.xuggle.xuggler.Global;
 
 public class Converter {
 
-	private static int MASTER = 0;
-	private static final int THUMB = 1;
 	public static volatile boolean capturationDone = false;
 	public static double RESIZE_FACTOR;
 	public static double FRAME_RATE;
-	private static String outputFilePrefix;
-	private static String masterGifName;
+	private static String outputPath;
+	private static String outputPrefix;
 	private static BufferedImage masterGifThumb;
 
 	static String firstImage;
@@ -58,18 +56,17 @@ public class Converter {
 
 		// Read the config file
 		Properties prop = new Properties();
-	    String fileName = "converter.config";
-	    InputStream is = null;
-	    masterGifThumb = null;
-		masterGifName = "";
-	    
+		String fileName = "converter.config";
+		InputStream is = null;
+		masterGifThumb = null;
+
 		try {
 			is = new FileInputStream(fileName);
 			prop.load(is);
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		}  catch (IOException e2) {
+		} catch (IOException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
 		}
@@ -77,12 +74,15 @@ public class Converter {
 		int frameRate = 5;
 		RESIZE_FACTOR = 1;
 		try {
-			frameRate = Integer.parseInt(prop.getProperty("converter.frame_rate", "5"));
-			RESIZE_FACTOR = Double.parseDouble(prop.getProperty("converter.resize_factor", "1"));
+			frameRate = Integer.parseInt(prop.getProperty(
+					"converter.frame_rate", "5"));
+			RESIZE_FACTOR = Double.parseDouble(prop.getProperty(
+					"converter.resize_factor", "1"));
 		} catch (NumberFormatException e) {
-			System.out.println("Illegal values in config file. Using default values instead.");
+			System.out
+					.println("Illegal values in config file. Using default values instead.");
 		}
-		
+
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
 		masterGifList = new ArrayList<String>();
@@ -91,12 +91,14 @@ public class Converter {
 		if (args.length < 3) {
 			// Illegal arguments
 			System.out.println("Illegal command line arguments.");
-			System.out.println("Usage:\n$ For example: $ java -jar converter.jar inputvideo.mp4 inputsrt.srt 1 2 3-5\nNote: Converter requires Java version 1.7 >= ");
+			System.out
+					.println("Usage:\n$ For example: $ java -jar converter.jar inputvideo.mp4 inputsrt.srt 1 2 3-5\nNote: Converter requires Java version 1.7 >= ");
 			return;
 		} else {
 			// Check that files exist
 			videoFile = args[0];
 			srtFile = args[1];
+			outputPath = videoFile.split(".mp4")[0];
 
 			File vf = new File(videoFile);
 			if (!vf.exists()) {
@@ -124,15 +126,16 @@ public class Converter {
 					return;
 				}
 			}
-			
+
 		}
 
 		timeIntervals = parseSRT(srtFile, srtSegments);
 		System.out.println("SRT file parsed.");
-		System.out.println("Converting video file to animated GIFs: " + videoFile);
+		System.out.println("Converting video file to animated GIFs: "
+				+ videoFile);
 		try {
 			for (int i = 0; i < timeIntervals.size(); i++) {
-				convert(videoFile, frameRate, timeIntervals.get(i));
+				convert(videoFile, frameRate, timeIntervals.get(i), (i+1));
 			}
 			System.out.println("Converting done.");
 		} catch (IOException e) {
@@ -145,16 +148,17 @@ public class Converter {
 			System.out.println("Runtime error.");
 			return;
 		}
-	
+
 		ImageOutputStream masterGifOutput;
 		GifSequenceWriter masterGifWriter = null;
 
 		// Create master GIF
 		if (!masterGifList.isEmpty()) {
-			String masterGifFilename = videoFile.split(".mp4")[0] + "_master";//.gif";
+			String masterGifFilename = outputPath + "/master.gif";
 			System.out.println("Creating master GIF: " + masterGifFilename);
 			try {
-				masterGifOutput = new FileImageOutputStream(new File(masterGifFilename + ".gif"));
+				masterGifOutput = new FileImageOutputStream(new File(
+						masterGifFilename));
 				masterGifWriter = new GifSequenceWriter(masterGifOutput, 5,
 						1000, true, null);
 				for (String item : masterGifList) {
@@ -168,7 +172,9 @@ public class Converter {
 			}
 			if (masterGifThumb != null) {
 				try {
-					ImageIO.write(masterGifThumb, "png", new File(masterGifFilename + "_thumb.png"));
+					
+					ImageIO.write(masterGifThumb, "png", new File(
+							outputPath + "/master.png"));
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -193,8 +199,8 @@ public class Converter {
 	 * @throws RuntimeException
 	 */
 	public static void convert(String inputFile, double frameRate,
-			String timeInterval) throws IOException, InterruptedException,
-			RuntimeException {
+			String timeInterval, int count) throws IOException,
+			InterruptedException, RuntimeException {
 		if (inputFile.equals("")) {
 			System.out.println("Illegal input filename.");
 			throw new RuntimeException();
@@ -239,10 +245,12 @@ public class Converter {
 		mediaReader.addListener(new ImageSnapListener());
 
 		// Create output stream
-		outputFilePrefix = inputFile.split(".mp4")[0];
-		outputFilePrefix += "_" + startTime + "-" + endTime;
-		ImageOutputStream output = new FileImageOutputStream(new File(
-				outputFilePrefix + ".gif"));
+		//outputPath = inputFile.split(".mp4")[0];
+		outputPrefix = outputPath + "/" + String.format("%03d", count);
+		
+		File img = new File(outputPrefix + ".gif");
+		img.getParentFile().mkdirs();
+		ImageOutputStream output = new FileImageOutputStream(img);
 
 		// Create new instance of GifSequenceWriter and start it in new thread
 		Thread t = new Thread(new GifSequenceWriter(output, 5,
@@ -262,21 +270,21 @@ public class Converter {
 			System.out.println("Runtime exception");
 			e.printStackTrace();
 		}
-		
+
 		while (t.isAlive()) {
 			// Wait maximum of 3 second
 			// for GifSequenceWriter thread
 			// to finish.
 			t.join(3000);
 		}
-		
+
 		output.close();
 	}
 
 	/**
 	 * Parses time frames from an SRT file based on given segment numbers
-         * Creates text files of each parameter 
-         * Files include the corresponding subtitle segment
+	 * Creates text files of each parameter Files include the corresponding
+	 * subtitle segment
 	 * 
 	 * @param inputSRT
 	 *            SRT file to be parsed
@@ -290,23 +298,25 @@ public class Converter {
 			List<String> segmentNumbers) {
 
 		BufferedReader SRTreader;
-                PrintWriter writer;
-                String timeFrame;
-                String combinedTimeFrame;
-                String nextTextLine;
-                String txtFileName;
-                int elementIndex;
-                int currentSegment;
-                int lastSegment;
-                int counter = 1;
+		File txtFile;
+		PrintWriter writer;
+		String timeFrame;
+		String combinedTimeFrame;
+		String nextTextLine;
+		String txtFileName;
+		int elementIndex;
+		int currentSegment;
+		int lastSegment;
+		int counter = 1;
 
-                List<String> segments = new ArrayList<>();
-                List<String> multipleSegments = new ArrayList<>();
-                List<String> timeFrames = new ArrayList<>();
-                List<String> longTimeFrames = new ArrayList<>();
-                
-                // Go through the list of segment numbers
-                // Split the input if it contains "-" and save the segment numbers to lists
+		List<String> segments = new ArrayList<>();
+		List<String> multipleSegments = new ArrayList<>();
+		List<String> timeFrames = new ArrayList<>();
+		List<String> longTimeFrames = new ArrayList<>();
+
+		// Go through the list of segment numbers
+		// Split the input if it contains "-" and save the segment numbers to
+		// lists
 		for (String item : segmentNumbers) {
 			if (item.contains("-")) {
 				multipleSegments.add(item.split("-")[0]);
@@ -320,79 +330,83 @@ public class Converter {
 			SRTreader = new BufferedReader(file);
 
 			String line;
-                        
-                        // Read the srt file line by line and search for the right segments
+
+			// Read the srt file line by line and search for the right segments
 			while ((line = SRTreader.readLine()) != null) {
-                                // If the argument is only one segment
+				// If the argument is only one segment
 				if (segments.contains(line)) {
-                                        // TODO: Modify the filenames
+					// TODO: Modify the filenames
 					if (counter < 10)
-                                            txtFileName = "00"+Integer.toString(counter)+".txt";
-                                        else if (counter < 100)
-                                            txtFileName = "0"+Integer.toString(counter)+".txt";
-                                        else
-                                            txtFileName = Integer.toString(counter)+".txt";
+						txtFileName = "00" + Integer.toString(counter) + ".txt";
+					else if (counter < 100)
+						txtFileName = "0" + Integer.toString(counter) + ".txt";
+					else
+						txtFileName = Integer.toString(counter) + ".txt";
 
-                                        writer = new PrintWriter(txtFileName, "UTF-8");
-                                        timeFrame = SRTreader.readLine();
-                                        timeFrames.add(timeFrame);
-                                        writer.println(SRTreader.readLine());
-                                        
-                                        // If the srt segments includes multiple lines,
-                                        // write them all to the file
-                                        while ((nextTextLine = SRTreader.readLine()).length() > 0){
-                                            writer.println(nextTextLine);
-                                        }
-                                        
-                                        counter++;
-                                        writer.close();
+					txtFile = new File(outputPath + "/" + txtFileName);
+					txtFile.getParentFile().mkdirs();
+					writer = new PrintWriter(txtFile, "UTF-8");
+					timeFrame = SRTreader.readLine();
+					timeFrames.add(timeFrame);
+					writer.println(SRTreader.readLine());
+
+					// If the srt segments includes multiple lines,
+					// write them all to the file
+					while ((nextTextLine = SRTreader.readLine()).length() > 0) {
+						writer.println(nextTextLine);
+					}
+
+					counter++;
+					writer.close();
 				}
-                                
-                                // If the argument includes multiple segments
-				if (multipleSegments.contains(line)){
-                                        // TODO: Modify the filenames
-                                        if (counter < 10)
-                                            txtFileName = "00"+Integer.toString(counter)+".txt";
-                                        else if (counter < 100)
-                                            txtFileName = "0"+Integer.toString(counter)+".txt";
-                                        else
-                                            txtFileName = Integer.toString(counter)+".txt";
 
-                                        writer = new PrintWriter(txtFileName, "UTF-8");
-                                        elementIndex = multipleSegments.indexOf(line);
-                                        timeFrame = SRTreader.readLine();
+				// If the argument includes multiple segments
+				if (multipleSegments.contains(line)) {
+					// TODO: Modify the filenames
+					if (counter < 10)
+						txtFileName = "00" + Integer.toString(counter) + ".txt";
+					else if (counter < 100)
+						txtFileName = "0" + Integer.toString(counter) + ".txt";
+					else
+						txtFileName = Integer.toString(counter) + ".txt";
 
-                                        longTimeFrames.add(timeFrame);
-                                        
-                                        writer.println(SRTreader.readLine());
-                                        while ((nextTextLine = SRTreader.readLine()).length() > 0){
-                                            writer.println(nextTextLine);
-                                        }
-                                        writer.println('\n');
+					txtFile = new File(outputPath + "/" + txtFileName);
+					txtFile.getParentFile().mkdirs();
+					writer = new PrintWriter(txtFile, "UTF-8");
+					elementIndex = multipleSegments.indexOf(line);
+					timeFrame = SRTreader.readLine();
 
+					longTimeFrames.add(timeFrame);
 
-                                        currentSegment = Integer.parseInt(line);
-                                        lastSegment = Integer.parseInt(multipleSegments.get(elementIndex+1));
-                                        
-                                        // Write all the subtitles from the defined period to file
-                                        while(currentSegment < lastSegment){
-                                            currentSegment = Integer.parseInt(SRTreader.readLine());
-                                            timeFrame = SRTreader.readLine();
-                                            while ((nextTextLine = SRTreader.readLine()).length() > 0){
-                                                writer.println(nextTextLine);
-                                            }
-                                            writer.println('\n');
+					writer.println(SRTreader.readLine());
+					while ((nextTextLine = SRTreader.readLine()).length() > 0) {
+						writer.println(nextTextLine);
+					}
+					writer.println('\n');
 
-                                        }
-                                        longTimeFrames.add(timeFrame);
+					currentSegment = Integer.parseInt(line);
+					lastSegment = Integer.parseInt(multipleSegments
+							.get(elementIndex + 1));
+
+					// Write all the subtitles from the defined period to file
+					while (currentSegment < lastSegment) {
+						currentSegment = Integer.parseInt(SRTreader.readLine());
+						timeFrame = SRTreader.readLine();
+						while ((nextTextLine = SRTreader.readLine()).length() > 0) {
+							writer.println(nextTextLine);
+						}
+						writer.println('\n');
+
+					}
+					longTimeFrames.add(timeFrame);
 					if ((longTimeFrames.size() & 1) == 0) {
 						combinedTimeFrame = combineFrames(
-                                                                    longTimeFrames.get(elementIndex),
-                                                                    longTimeFrames.get(elementIndex+1));
+								longTimeFrames.get(elementIndex),
+								longTimeFrames.get(elementIndex + 1));
 						timeFrames.add(combinedTimeFrame);
 					}
-                                        counter++;
-                                        writer.close();
+					counter++;
+					writer.close();
 				}
 			}
 			SRTreader.close();
@@ -402,14 +416,17 @@ public class Converter {
 		}
 		return timeFrames;
 	}
-        /**
-	 * Combines two separate time frames' start and end times into one time frame
+
+	/**
+	 * Combines two separate time frames' start and end times into one time
+	 * frame
 	 * 
 	 * @param timeFrame1
 	 *            First time frame (e.g. "00:00:05,000 --> 00:00:09,693")
 	 * @param timeFrame2
 	 *            Second time frame (e.g. "00:00:10,000 --> 00:00:11,000")
-	 * @return Combined time frame in string format (e.g. "00:00:05,000 --> 00:00:11,000")
+	 * @return Combined time frame in string format (e.g.
+	 *         "00:00:05,000 --> 00:00:11,000")
 	 */
 	private static String combineFrames(String timeFrame1, String timeFrame2) {
 		String combinedTimeFrame;
@@ -494,10 +511,9 @@ public class Converter {
 			}
 			biList.add(resized);
 			if (firstImage.equals("") == true) {
-				firstImage = dumpImageToFile(resized, THUMB);
-				if (masterGifName.equals("") == true) {
+				firstImage = dumpImageToFile(resized);
+				if (masterGifThumb == null) {
 					masterGifThumb = resized;
-					//masterGifName = dumpImageToFile(resized, MASTER);
 				}
 				masterGifList.add(firstImage);
 			}
@@ -510,17 +526,11 @@ public class Converter {
 		 *            BufferedImage to be written to file.
 		 * @return String containing filename of the written imagefile.
 		 */
-		private String dumpImageToFile(BufferedImage image, int type) {
+		private String dumpImageToFile(BufferedImage image) {
 
 			try {
 				String outputFilename = "";
-				if (type == THUMB) {
-				outputFilename = outputFilePrefix + "_thumbnail.png";
-				} else if (type == MASTER) {
-					//String[] arrays = outputFilePrefix.split("_");// + "_master_thumb";
-					outputFilename = outputFilePrefix + "_master_thumbnail.png";
-				}
-				
+				outputFilename = outputPrefix + ".png";
 				ImageIO.write(image, "png", new File(outputFilename));
 				return outputFilename;
 			} catch (IOException e) {
