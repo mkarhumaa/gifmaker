@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -274,6 +275,8 @@ public class Converter {
 
 	/**
 	 * Parses time frames from an SRT file based on given segment numbers
+         * Creates text files of each parameter 
+         * Files include the corresponding subtitle segment
 	 * 
 	 * @param inputSRT
 	 *            SRT file to be parsed
@@ -286,15 +289,21 @@ public class Converter {
 	public static List<String> parseSRT(String inputSRT,
 			List<String> segmentNumbers) {
 
-		BufferedReader SRTreader = null;
-		String timeFrame = null;
-		String combinedTimeFrame;
-		int elementIndex;
+		BufferedReader SRTreader;
+                PrintWriter writer;
+                String timeFrame;
+                String combinedTimeFrame;
+                String nextTextLine;
+                String txtFileName;
+                int elementIndex;
+                int currentSegment;
+                int lastSegment;
+                int counter = 1;
 
-		List<String> segments = new ArrayList<>();
-		List<String> multipleSegments = new ArrayList<>();
-		List<String> timeFrames = new ArrayList<>();
-		List<String> longTimeFrames = new ArrayList<>();
+                List<String> segments = new ArrayList<>();
+                List<String> multipleSegments = new ArrayList<>();
+                List<String> timeFrames = new ArrayList<>();
+                List<String> longTimeFrames = new ArrayList<>();
                 
                 // Go through the list of segment numbers
                 // Split the input if it contains "-" and save the segment numbers to lists
@@ -314,20 +323,76 @@ public class Converter {
                         
                         // Read the srt file line by line and search for the right segments
 			while ((line = SRTreader.readLine()) != null) {
+                                // If the argument is only one segment
 				if (segments.contains(line)) {
-					timeFrame = SRTreader.readLine();
-					timeFrames.add(timeFrame);
+                                        // TODO: Modify the filenames
+					if (counter < 10)
+                                            txtFileName = "00"+Integer.toString(counter)+".txt";
+                                        else if (counter < 100)
+                                            txtFileName = "0"+Integer.toString(counter)+".txt";
+                                        else
+                                            txtFileName = Integer.toString(counter)+".txt";
+
+                                        writer = new PrintWriter(txtFileName, "UTF-8");
+                                        timeFrame = SRTreader.readLine();
+                                        timeFrames.add(timeFrame);
+                                        writer.println(SRTreader.readLine());
+                                        
+                                        // If the srt segments includes multiple lines,
+                                        // write them all to the file
+                                        while ((nextTextLine = SRTreader.readLine()).length() > 0){
+                                            writer.println(nextTextLine);
+                                        }
+                                        
+                                        counter++;
+                                        writer.close();
 				}
-				if (multipleSegments.contains(line)) {
-					elementIndex = multipleSegments.indexOf(line);
-					timeFrame = SRTreader.readLine();
-					longTimeFrames.add(timeFrame);
+                                
+                                // If the argument includes multiple segments
+				if (multipleSegments.contains(line)){
+                                        // TODO: Modify the filenames
+                                        if (counter < 10)
+                                            txtFileName = "00"+Integer.toString(counter)+".txt";
+                                        else if (counter < 100)
+                                            txtFileName = "0"+Integer.toString(counter)+".txt";
+                                        else
+                                            txtFileName = Integer.toString(counter)+".txt";
+
+                                        writer = new PrintWriter(txtFileName, "UTF-8");
+                                        elementIndex = multipleSegments.indexOf(line);
+                                        timeFrame = SRTreader.readLine();
+
+                                        longTimeFrames.add(timeFrame);
+                                        
+                                        writer.println(SRTreader.readLine());
+                                        while ((nextTextLine = SRTreader.readLine()).length() > 0){
+                                            writer.println(nextTextLine);
+                                        }
+                                        writer.println('\n');
+
+
+                                        currentSegment = Integer.parseInt(line);
+                                        lastSegment = Integer.parseInt(multipleSegments.get(elementIndex+1));
+                                        
+                                        // Write all the subtitles from the defined period to file
+                                        while(currentSegment < lastSegment){
+                                            currentSegment = Integer.parseInt(SRTreader.readLine());
+                                            timeFrame = SRTreader.readLine();
+                                            while ((nextTextLine = SRTreader.readLine()).length() > 0){
+                                                writer.println(nextTextLine);
+                                            }
+                                            writer.println('\n');
+
+                                        }
+                                        longTimeFrames.add(timeFrame);
 					if ((longTimeFrames.size() & 1) == 0) {
 						combinedTimeFrame = combineFrames(
-                                                                    longTimeFrames.get(elementIndex - 1),
-                                                                    longTimeFrames.get(elementIndex));
+                                                                    longTimeFrames.get(elementIndex),
+                                                                    longTimeFrames.get(elementIndex+1));
 						timeFrames.add(combinedTimeFrame);
 					}
+                                        counter++;
+                                        writer.close();
 				}
 			}
 			SRTreader.close();
