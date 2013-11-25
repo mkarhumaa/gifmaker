@@ -174,8 +174,8 @@ public class Converter {
 					ImageIO.write(masterGifThumb, "png", new File(
 							outputPath + "/master.png"));
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.out.println("Cannot write master GIF.");
+					return;
 				}
 			}
 			System.out.println("Master GIF done.");
@@ -192,6 +192,8 @@ public class Converter {
 	 * @param timeInterval
 	 *            Time interval to be captured. Format is same than in SRT
 	 *            files: 00:00:00,000 --> 00:01:17,000
+	 * @param count
+	 * 			  Tells the running number of segment.
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws RuntimeException
@@ -233,8 +235,8 @@ public class Converter {
 			startTime = ((format.parse("1970-01-01 " + interval[0])).getTime() * 1000);
 			endTime = ((format.parse("1970-01-01 " + interval[1])).getTime() * 1000);
 		} catch (ParseException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("Cannot parse time from srt file. Illegal time format: " + interval[0] + " or " + interval[1]);
+			throw new RuntimeException();
 		}
 
 		IMediaReader mediaReader = ToolFactory.makeReader(inputFile);
@@ -257,25 +259,16 @@ public class Converter {
 
 		// read out the contents of the media file and
 		// dispatch events to the attached listener
-		try {
-			while (mediaReader.readPacket() == null && !capturationDone) {
-				if (biList.size() > (100 / RESIZE_FACTOR)) {
-					Thread.sleep(3000);
-				}
+		while (mediaReader.readPacket() == null && !capturationDone) {
+			if (biList.size() > (100 / RESIZE_FACTOR)) {
+				Thread.sleep(3000);
 			}
-		} catch (RuntimeException e) {
-			// Do nothing
-			System.out.println("Runtime exception");
-			e.printStackTrace();
 		}
 
 		while (t.isAlive()) {
-			// Wait maximum of 3 second
-			// for GifSequenceWriter thread
-			// to finish.
+			// Wait for GifSequenceWriter thread to finish.
 			t.join(3000);
 		}
-
 		output.close();
 	}
 
@@ -333,7 +326,6 @@ public class Converter {
 			while ((line = SRTreader.readLine()) != null) {
 				// If the argument is only one segment
 				if (segments.contains(line)) {
-					// TODO: Modify the filenames
 					if (counter < 10)
 						txtFileName = "00" + Integer.toString(counter) + ".txt";
 					else if (counter < 100)
