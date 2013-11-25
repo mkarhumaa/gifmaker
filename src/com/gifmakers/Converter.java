@@ -64,11 +64,9 @@ public class Converter {
 			is = new FileInputStream(fileName);
 			prop.load(is);
 		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("converter.config file not found. Using default configuration instead.");
 		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
+			System.out.println("Cannot load configurations. Using default configuration instead.");
 		}
 		// Define configurable variables initially by default values.
 		int frameRate = 5;
