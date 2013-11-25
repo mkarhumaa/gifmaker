@@ -29,10 +29,14 @@ import com.xuggle.xuggler.Global;
 
 public class Converter {
 
+	private static int MASTER = 0;
+	private static final int THUMB = 1;
 	public static volatile boolean capturationDone = false;
 	public static double RESIZE_FACTOR;
 	public static double FRAME_RATE;
 	private static String outputFilePrefix;
+	private static String masterGifName;
+	private static BufferedImage masterGifThumb;
 
 	static String firstImage;
 	public static ArrayList<BufferedImage> biList;
@@ -55,6 +59,9 @@ public class Converter {
 		Properties prop = new Properties();
 	    String fileName = "converter.config";
 	    InputStream is = null;
+	    masterGifThumb = null;
+		masterGifName = "";
+	    
 		try {
 			is = new FileInputStream(fileName);
 			prop.load(is);
@@ -83,7 +90,6 @@ public class Converter {
 		if (args.length < 3) {
 			// Illegal arguments
 			System.out.println("Illegal command line arguments.");
-			// TODO Write instructions
 			System.out.println("Usage:\n$ For example: $ java -jar converter.jar inputvideo.mp4 inputsrt.srt 1 2 3-5\nNote: Converter requires Java version 1.7 >= ");
 			return;
 		} else {
@@ -108,7 +114,7 @@ public class Converter {
 			for (int i = 2; i < args.length; i++) {
 				// Check first that arguments are legal
 				if (args[i].matches("\\d+(-\\d+)?")) {
-					// This regex matches for ecample following: "1", "11",
+					// This regex matches for example following: "1", "11",
 					// "1-1", "11-11"
 					srtSegments.add(args[i]);
 				} else {
@@ -125,7 +131,7 @@ public class Converter {
 		System.out.println("Converting video file to animated GIFs: " + videoFile);
 		try {
 			for (int i = 0; i < timeIntervals.size(); i++) {
-				convert(videoFile, 10, timeIntervals.get(i));
+				convert(videoFile, frameRate, timeIntervals.get(i));
 			}
 			System.out.println("Converting done.");
 		} catch (IOException e) {
@@ -144,11 +150,11 @@ public class Converter {
 
 		// Create master GIF
 		if (!masterGifList.isEmpty()) {
-			String masterGifFilename = videoFile.split(".mp4")[0] + "_master.gif";
+			String masterGifFilename = videoFile.split(".mp4")[0] + "_master";//.gif";
 			System.out.println("Creating master GIF: " + masterGifFilename);
 			try {
-				masterGifOutput = new FileImageOutputStream(new File(masterGifFilename));
-				masterGifWriter = new GifSequenceWriter(masterGifOutput, frameRate,
+				masterGifOutput = new FileImageOutputStream(new File(masterGifFilename + ".gif"));
+				masterGifWriter = new GifSequenceWriter(masterGifOutput, 5,
 						1000, true, null);
 				for (String item : masterGifList) {
 					BufferedImage nextImage = ImageIO.read(new File(item));
@@ -158,6 +164,14 @@ public class Converter {
 			} catch (IOException e) {
 				System.out.println("Cannot create master GIF.");
 				return;
+			}
+			if (masterGifThumb != null) {
+				try {
+					ImageIO.write(masterGifThumb, "png", new File(masterGifFilename + "_thumb.png"));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			System.out.println("Master GIF done.");
 		}
@@ -404,7 +418,11 @@ public class Converter {
 			}
 			biList.add(resized);
 			if (firstImage.equals("") == true) {
-				firstImage = dumpImageToFile(resized);
+				firstImage = dumpImageToFile(resized, THUMB);
+				if (masterGifName.equals("") == true) {
+					masterGifThumb = resized;
+					//masterGifName = dumpImageToFile(resized, MASTER);
+				}
 				masterGifList.add(firstImage);
 			}
 		}
@@ -416,10 +434,17 @@ public class Converter {
 		 *            BufferedImage to be written to file.
 		 * @return String containing filename of the written imagefile.
 		 */
-		private String dumpImageToFile(BufferedImage image) {
+		private String dumpImageToFile(BufferedImage image, int type) {
 
 			try {
-				String outputFilename = outputFilePrefix + "_thumbnail.png";
+				String outputFilename = "";
+				if (type == THUMB) {
+				outputFilename = outputFilePrefix + "_thumbnail.png";
+				} else if (type == MASTER) {
+					//String[] arrays = outputFilePrefix.split("_");// + "_master_thumb";
+					outputFilename = outputFilePrefix + "_master_thumbnail.png";
+				}
+				
 				ImageIO.write(image, "png", new File(outputFilename));
 				return outputFilename;
 			} catch (IOException e) {
