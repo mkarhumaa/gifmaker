@@ -8,7 +8,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.text.ParseException;
@@ -81,7 +80,17 @@ public class Converter {
 			System.out
 					.println("Illegal values in config file. Using default values instead.");
 		}
-
+		if (RESIZE_FACTOR <= 0) {
+			RESIZE_FACTOR = 1;
+			System.out
+			.println("Illegal resize factor in config file. Using default value instead.");
+		}
+		
+		if (frameRate <= 0) {
+			frameRate = 5;
+			System.out
+			.println("Illegal frame rate in config file. Using default value instead.");
+		}
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
 		masterGifList = new ArrayList<String>();
