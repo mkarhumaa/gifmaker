@@ -27,6 +27,7 @@ import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.Global;
+import java.io.InputStreamReader;
 
 public class Converter {
 
@@ -317,8 +318,10 @@ public class Converter {
 		}
 
 		try {
-			FileReader file = new FileReader(inputSRT);
-			SRTreader = new BufferedReader(file);
+			File file = new File(inputSRT);
+            
+                        SRTreader = new BufferedReader( 
+                                new InputStreamReader(new FileInputStream(file),"ISO-8859-4"));
 
 			String line;
 
@@ -335,7 +338,7 @@ public class Converter {
 
 					txtFile = new File(outputPath + "/" + txtFileName);
 					txtFile.getParentFile().mkdirs();
-					writer = new PrintWriter(txtFile, "UTF-8");
+					writer = new PrintWriter(txtFile, "ISO-8859-4");
 					timeFrame = SRTreader.readLine();
 					timeFrames.add(timeFrame);
 					writer.println(SRTreader.readLine());
@@ -362,7 +365,7 @@ public class Converter {
 
 					txtFile = new File(outputPath + "/" + txtFileName);
 					txtFile.getParentFile().mkdirs();
-					writer = new PrintWriter(txtFile, "UTF-8");
+					writer = new PrintWriter(txtFile, "ISO-8859-4");
 					elementIndex = multipleSegments.indexOf(line);
 					timeFrame = SRTreader.readLine();
 
