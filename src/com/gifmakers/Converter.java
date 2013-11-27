@@ -33,6 +33,7 @@ public class Converter {
 	public static volatile boolean capturationDone = false;
 	public static double RESIZE_FACTOR;
 	public static double FRAME_RATE;
+	public static double SPEED;
 	private static String outputPath;
 	private static String outputPrefix;
 	private static BufferedImage masterGifThumb;
@@ -71,11 +72,14 @@ public class Converter {
 		// Define configurable variables initially by default values.
 		int frameRate = 5;
 		RESIZE_FACTOR = 1;
+		SPEED = 1;
 		try {
 			frameRate = Integer.parseInt(prop.getProperty(
 					"converter.frame_rate", "5"));
 			RESIZE_FACTOR = Double.parseDouble(prop.getProperty(
 					"converter.resize_factor", "1"));
+			SPEED = Integer.parseInt(prop.getProperty(
+					"converter.speed", "1"));
 		} catch (NumberFormatException e) {
 			System.out
 					.println("Illegal values in config file. Using default values instead.");
@@ -90,6 +94,12 @@ public class Converter {
 			frameRate = 5;
 			System.out
 			.println("Illegal frame rate in config file. Using default value instead.");
+		}
+		
+		if (SPEED <= 0) {
+			SPEED = 1;
+			System.out
+			.println("Illegal speed in config file. Using default value instead.");
 		}
 		List<String> srtSegments = new ArrayList<>();
 		List<String> timeIntervals;
@@ -264,12 +274,13 @@ public class Converter {
 
 		// Create new instance of GifSequenceWriter and start it in new thread
 		Thread t = new Thread(new GifSequenceWriter(output, 5,
-				(int) (1000 / FRAME_RATE), true, biList));
+				(int) (1000 / (FRAME_RATE * SPEED)), true, biList));
 		t.start();
 
 		// read out the contents of the media file and
 		// dispatch events to the attached listener
 		while (mediaReader.readPacket() == null && !capturationDone) {
+			// Need to reduce the memory consumption by limiting the size of bilist
 			if (biList.size() > (100 / RESIZE_FACTOR)) {
 				Thread.sleep(3000);
 			}
