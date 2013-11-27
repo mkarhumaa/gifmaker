@@ -26,6 +26,7 @@ import com.xuggle.mediatool.MediaListenerAdapter;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.mediatool.event.IVideoPictureEvent;
 import com.xuggle.xuggler.Global;
+
 import java.io.InputStreamReader;
 
 public class Converter {
@@ -73,6 +74,7 @@ public class Converter {
 		int frameRate = 5;
 		RESIZE_FACTOR = 1;
 		SPEED = 1;
+		String scriptPath = "";
 		try {
 			frameRate = Integer.parseInt(prop.getProperty(
 					"converter.frame_rate", "5"));
@@ -84,6 +86,10 @@ public class Converter {
 			System.out
 					.println("Illegal values in config file. Using default values instead.");
 		}
+		
+		
+		scriptPath = prop.getProperty("converter.script_path", "");
+		
 		if (RESIZE_FACTOR <= 0) {
 			RESIZE_FACTOR = 1;
 			System.out
@@ -190,7 +196,6 @@ public class Converter {
 			}
 			if (masterGifThumb != null) {
 				try {
-					
 					ImageIO.write(masterGifThumb, "png", new File(
 							outputPath + "/master.png"));
 				} catch (IOException e) {
@@ -199,6 +204,22 @@ public class Converter {
 				}
 			}
 			System.out.println("Master GIF done.");
+		}
+		
+		// Execute script if defined in config file
+		if (scriptPath != "") {
+			try {
+				Runtime r = Runtime.getRuntime();
+				Process p = r.exec("python " + scriptPath);
+				BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+				String l;
+				while ((l = reader.readLine()) != null) {System.out.println(l);}
+				p.waitFor();
+				
+			} catch (IOException | InterruptedException e) {
+				System.out.println("Error occurred when executing script. " + e.getMessage());
+				return;
+			}	
 		}
 	}
 
