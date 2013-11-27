@@ -319,11 +319,19 @@ public class Converter {
 		// Split the input if it contains "-" and save the segment numbers to
 		// lists
 		for (String item : segmentNumbers) {
-			if (item.contains("-")) {
-				multipleSegments.add(item.split("-")[0]);
-				multipleSegments.add(item.split("-")[1]);
-			} else
-				segments.add(item);
+                    if (item.contains("-")) {
+                        if (Integer.parseInt(item.split("-")[0]) > Integer.parseInt(item.split("-")[1])){
+                            System.out.println("Error in subtitle segment argument '"+item+"'."
+                                    + " First number must be greater than the last.");
+                            System.out.println("The segment is ignored.");
+                        }
+                        else {
+                            multipleSegments.add(item.split("-")[0]);
+                            multipleSegments.add(item.split("-")[1]);
+                        }
+                    }
+                    else
+                        segments.add(item);
 		}
 
 		try {
