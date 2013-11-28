@@ -329,133 +329,55 @@ public class Converter {
 	 */
 	public static List<String> parseSRT(String inputSRT,
 			List<String> segmentNumbers) {
-
-		BufferedReader SRTreader;
-		File txtFile;
-		PrintWriter writer;
-		String timeFrame;
-		String combinedTimeFrame;
-		String nextTextLine;
-		String txtFileName;
-		int elementIndex;
-		int currentSegment;
-		int lastSegment;
-		int counter = 1;
-
-		List<String> segments = new ArrayList<>();
-		List<String> multipleSegments = new ArrayList<>();
-		List<String> timeFrames = new ArrayList<>();
-		List<String> longTimeFrames = new ArrayList<>();
-
-		// Go through the list of segment numbers
-		// Split the input if it contains "-" and save the segment numbers to
-		// lists
-		for (String item : segmentNumbers) {
-                    if (item.contains("-")) {
-                        if (Integer.parseInt(item.split("-")[0]) > Integer.parseInt(item.split("-")[1])){
-                            System.out.println("Error in subtitle segment argument '"+item+"'."
-                                    + " First number must be greater than the last.");
-                            System.out.println("The segment is ignored.");
-                        }
-                        else {
-                            multipleSegments.add(item.split("-")[0]);
-                            multipleSegments.add(item.split("-")[1]);
-                        }
-                    }
-                    else
-                        segments.add(item);
-		}
-
-		try {
-			File file = new File(inputSRT);
             
-                        SRTreader = new BufferedReader( 
-                                new InputStreamReader(new FileInputStream(file),"ISO-8859-4"));
+            String timeFrame1;
+            String timeFrame2;
+            String txtFileName;
+            String first;
+            String last;
+            int elementIndex;
 
-			String line;
+            List<String> timeFrames = new ArrayList<>();
 
-			// Read the srt file line by line and search for the right segments
-			while ((line = SRTreader.readLine()) != null) {
-				// If the argument is only one segment
-				if (segments.contains(line)) {
-					if (counter < 10)
-						txtFileName = "00" + Integer.toString(counter) + ".txt";
-					else if (counter < 100)
-						txtFileName = "0" + Integer.toString(counter) + ".txt";
-					else
-						txtFileName = Integer.toString(counter) + ".txt";
 
-					txtFile = new File(outputPath + "/" + txtFileName);
-					txtFile.getParentFile().mkdirs();
-					writer = new PrintWriter(txtFile, "ISO-8859-4");
-					timeFrame = SRTreader.readLine();
-					timeFrames.add(timeFrame);
-					writer.println(SRTreader.readLine());
+            for (String item : segmentNumbers){
+                elementIndex = segmentNumbers.indexOf(item)+1;
+                if (item.contains("-")){
+                    first = item.split("-")[0];
+                    last = item.split("-")[1];
+                    if (Integer.parseInt(first) > Integer.parseInt(last)){
+                        System.out.println("Error in subtitle segment argument '"+item+"'."
+                                + " First number must be greater than the last.");
+                        System.out.println("The segment is ignored.");
+                    }
+                    else {
+                        timeFrame1 = searchTimeFromSRT(inputSRT, first);
+                        timeFrame2 = searchTimeFromSRT(inputSRT, last);
+                        timeFrames.add(combineFrames(timeFrame1, timeFrame2));
 
-					// If the srt segments includes multiple lines,
-					// write them all to the file
-					while ((nextTextLine = SRTreader.readLine()).length() > 0) {
-						writer.println(nextTextLine);
-					}
+                        if (elementIndex < 10)
+                            txtFileName = "00"+Integer.toString(elementIndex)+".txt";
+                        else if (elementIndex < 100)
+                            txtFileName = "0"+Integer.toString(elementIndex)+".txt";
+                        else
+                            txtFileName = Integer.toString(elementIndex)+".txt";
+                        
+                        
+                        writeSubsToFile(inputSRT, first, last, txtFileName);
+                    }
+                }
+                else {
+                    timeFrames.add(searchTimeFromSRT(inputSRT, item));
+                    if (elementIndex < 10)
+                            txtFileName = "00"+Integer.toString(elementIndex)+".txt";
+                    else if (elementIndex < 100)
+                        txtFileName = "0"+Integer.toString(elementIndex)+".txt";
+                    else
+                        txtFileName = Integer.toString(elementIndex)+".txt";
 
-					counter++;
-					writer.close();
-				}
-
-				// If the argument includes multiple segments
-				if (multipleSegments.contains(line)) {
-					// TODO: Modify the filenames
-					if (counter < 10)
-						txtFileName = "00" + Integer.toString(counter) + ".txt";
-					else if (counter < 100)
-						txtFileName = "0" + Integer.toString(counter) + ".txt";
-					else
-						txtFileName = Integer.toString(counter) + ".txt";
-
-					txtFile = new File(outputPath + "/" + txtFileName);
-					txtFile.getParentFile().mkdirs();
-					writer = new PrintWriter(txtFile, "ISO-8859-4");
-					elementIndex = multipleSegments.indexOf(line);
-					timeFrame = SRTreader.readLine();
-
-					longTimeFrames.add(timeFrame);
-
-					writer.println(SRTreader.readLine());
-					while ((nextTextLine = SRTreader.readLine()).length() > 0) {
-						writer.println(nextTextLine);
-					}
-					writer.println('\n');
-
-					currentSegment = Integer.parseInt(line);
-					lastSegment = Integer.parseInt(multipleSegments
-							.get(elementIndex + 1));
-
-					// Write all the subtitles from the defined period to file
-					while (currentSegment < lastSegment) {
-						currentSegment = Integer.parseInt(SRTreader.readLine());
-						timeFrame = SRTreader.readLine();
-						while ((nextTextLine = SRTreader.readLine()).length() > 0) {
-							writer.println(nextTextLine);
-						}
-						writer.println('\n');
-
-					}
-					longTimeFrames.add(timeFrame);
-					if ((longTimeFrames.size() & 1) == 0) {
-						combinedTimeFrame = combineFrames(
-								longTimeFrames.get(elementIndex),
-								longTimeFrames.get(elementIndex + 1));
-						timeFrames.add(combinedTimeFrame);
-					}
-					counter++;
-					writer.close();
-				}
-			}
-			SRTreader.close();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+                    writeSubsToFile(inputSRT, item, item, txtFileName);           
+                }
+            }
 		return timeFrames;
 	}
 
@@ -482,6 +404,107 @@ public class Converter {
 
 		return combinedTimeFrame;
 	}
+        /** 
+         * Searches given segment number and its corresponding time frame from SRT-file
+         * 
+         * @param inputSRT
+         * @param segmentNumber
+         * @return String containing the time frame
+         */
+        private static String searchTimeFromSRT(String inputSRT, String segmentNumber){
+            String timeFrame = null;
+            BufferedReader SRTreader;
+            try {
+                File file = new File(inputSRT);
+
+                SRTreader = new BufferedReader( 
+                        new InputStreamReader(new FileInputStream(file),"ISO-8859-4"));
+
+                String line;
+                
+                // Go through the SRT-file line by line and see if the line matches
+                // to segment number
+                while(( line = SRTreader.readLine()) != null)
+                {
+                    // If the line matches, read the time frame from the next line
+                    if (line.matches(segmentNumber)){
+                        timeFrame = SRTreader.readLine();
+                    }
+                }
+                SRTreader.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            return timeFrame;
+        }
+        
+        /**
+         * Searches subtitle segments from SRT-file, corresponding to segment numbers
+         * and writes them to a text file
+         * 
+         * @param inputSRT
+         * @param firstSegment
+         * @param lastSegment
+         * @param outputTxtFile 
+         */
+        private static void writeSubsToFile(String inputSRT, String firstSegment,
+                String lastSegment, String outputTxtFile){
+            
+            File txtFile;
+            BufferedReader SRTreader;
+            String nextTextLine;
+            int currentSegment;
+            int lastSegmentInt = Integer.parseInt(lastSegment);
+            
+            txtFile = new File(outputPath + "/" + outputTxtFile);
+            txtFile.getParentFile().mkdirs();
+            
+            try {
+                File file = new File(inputSRT);
+
+                SRTreader = new BufferedReader( 
+                        new InputStreamReader(new FileInputStream(file),"ISO-8859-4"));
+
+                PrintWriter writer = new PrintWriter(txtFile, "ISO-8859-4");
+
+                String line;
+                
+                // Go through the SRT-file line by line and see if the line matches
+                // to segment number
+                while(( line = SRTreader.readLine()) != null)
+                {
+                    // If the line matches, skip one line and read the subtitle segment
+                    // and write it to file
+                    if (line.matches(firstSegment)){
+                        SRTreader.readLine();
+                        writer.println(SRTreader.readLine());
+                        while ((nextTextLine = SRTreader.readLine()).length() > 0){
+                            writer.println(nextTextLine);
+                        }
+                        
+                        currentSegment = Integer.parseInt(line);
+                        if (currentSegment != lastSegmentInt)
+                            writer.println('\n');
+
+                        while(currentSegment < lastSegmentInt){
+                            currentSegment = Integer.parseInt(SRTreader.readLine());
+                            SRTreader.readLine();
+                            while ((nextTextLine = SRTreader.readLine()).length() > 0){
+                                writer.println(nextTextLine);
+                            }
+                            writer.println('\n');
+                        }
+                    }
+                }
+                writer.close();
+                SRTreader.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
 
 	/**
 	 * Nested listener class for listening PictureEvents from IMediaReader.
