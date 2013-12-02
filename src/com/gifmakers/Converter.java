@@ -347,14 +347,14 @@ public class Converter {
                     last = item.split("-")[1];
                     if (Integer.parseInt(first) > Integer.parseInt(last)){
                         System.out.println("Error in subtitle segment argument '"+item+"'."
-                                + " First number must be greater than the last.");
+                                + " First number must be smaller than the last.");
                         System.out.println("The segment is ignored.");
                     }
                     else {
                         timeFrame1 = searchTimeFromSRT(inputSRT, first);
                         timeFrame2 = searchTimeFromSRT(inputSRT, last);
-                        timeFrames.add(combineFrames(timeFrame1, timeFrame2));
-
+                        
+                        // Create the txt file name based on the argument index
                         if (elementIndex < 10)
                             txtFileName = "00"+Integer.toString(elementIndex)+".txt";
                         else if (elementIndex < 100)
@@ -362,25 +362,80 @@ public class Converter {
                         else
                             txtFileName = Integer.toString(elementIndex)+".txt";
                         
-                        
-                        writeSubsToFile(inputSRT, first, last, txtFileName);
+                        // Check whether all the segment numbers are found in the SRT file
+                        if (timeFrame1 != null && timeFrame2 != null){
+                            timeFrames.add(combineFrames(timeFrame1, timeFrame2));
+                            writeSubsToFile(inputSRT, first, last, txtFileName);
+                        }
+                        else if (timeFrame1 == null && timeFrame2 != null){
+                            timeFrames.add(timeFrame2);
+                            writeSubsToFile(inputSRT, last, last, txtFileName);
+                        }
+                        else if (timeFrame1 != null && timeFrame2 == null){
+                            String lastSegment = findLastSegment(inputSRT);
+                            timeFrame2 = searchTimeFromSRT(inputSRT, lastSegment);
+                            timeFrames.add(combineFrames(timeFrame1, timeFrame2));
+                            
+                            System.out.println("The last segment number in "+ inputSRT 
+                                    + " is " + lastSegment + ". Reading SRT until that point.");
+                            writeSubsToFile(inputSRT, first, lastSegment, txtFileName);
+                        }
+                        else {
+                            System.out.println("Segments " + item + " not found in SRT file.");
+                        }                                   
                     }
                 }
                 else {
-                    timeFrames.add(searchTimeFromSRT(inputSRT, item));
-                    if (elementIndex < 10)
-                            txtFileName = "00"+Integer.toString(elementIndex)+".txt";
-                    else if (elementIndex < 100)
-                        txtFileName = "0"+Integer.toString(elementIndex)+".txt";
-                    else
-                        txtFileName = Integer.toString(elementIndex)+".txt";
+                    timeFrame1 = searchTimeFromSRT(inputSRT, item);
+                    if (timeFrame1 != null){
+                        timeFrames.add(timeFrame1);
+                        if (elementIndex < 10)
+                                txtFileName = "00"+Integer.toString(elementIndex)+".txt";
+                        else if (elementIndex < 100)
+                            txtFileName = "0"+Integer.toString(elementIndex)+".txt";
+                        else
+                            txtFileName = Integer.toString(elementIndex)+".txt";
 
-                    writeSubsToFile(inputSRT, item, item, txtFileName);           
+                        writeSubsToFile(inputSRT, item, item, txtFileName);
+                    }
+                    else
+                        System.out.println("Segment " + item + " not found in " + inputSRT +".");
                 }
             }
 		return timeFrames;
 	}
 
+        /**
+         * Finds the last segment number of an SRT file
+         * @param inputSRT
+         * @return The Last segment number in string format
+         */
+        private static String findLastSegment(String inputSRT){
+            BufferedReader SRTreader;
+            String currentSegment = null;
+            String nextLine;
+            try {
+                File file = new File(inputSRT);
+
+                SRTreader = new BufferedReader( 
+                        new InputStreamReader(new FileInputStream(file),"ISO-8859-4"));
+
+                String line;
+                while(( line = SRTreader.readLine()) != null)
+                {
+                    currentSegment = line;
+                    while ((nextLine = SRTreader.readLine()).length() > 0){
+                        if (nextLine == null)
+                            break;
+                    }
+                }
+                SRTreader.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            return currentSegment;
+        }
 	/**
 	 * Combines two separate time frames' start and end times into one time
 	 * frame
@@ -429,6 +484,7 @@ public class Converter {
                     // If the line matches, read the time frame from the next line
                     if (line.matches(segmentNumber)){
                         timeFrame = SRTreader.readLine();
+                        break;
                     }
                 }
                 SRTreader.close();
@@ -474,6 +530,7 @@ public class Converter {
                 // to segment number
                 while(( line = SRTreader.readLine()) != null)
                 {
+                    
                     // If the line matches, skip one line and read the subtitle segment
                     // and write it to file
                     if (line.matches(firstSegment)){
@@ -495,6 +552,7 @@ public class Converter {
                             }
                             writer.println('\n');
                         }
+                        break;
                     }
                 }
                 writer.close();
