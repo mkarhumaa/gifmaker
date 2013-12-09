@@ -1,0 +1,415 @@
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+/* base.css, part of YUI's CSS Foundation */
+h1 {
+	/*18px via YUI Fonts CSS foundation*/
+	font-size:138.5%;  
+}
+h2 {
+	/*16px via YUI Fonts CSS foundation*/
+	font-size:123.1%; 
+}
+h3 {
+	/*14px via YUI Fonts CSS foundation*/
+	font-size:108%;  
+}
+h1,h2,h3 {
+	/* top & bottom margin based on font size */
+	margin:1em 0;
+}
+h1,h2,h3,h4,h5,h6,strong {
+	/*bringing boldness back to headers and the strong element*/
+	font-weight:bold; 
+}
+abbr,acronym {
+	/*indicating to users that more info is available */
+	border-bottom:1px dotted #000;
+	cursor:help;
+} 
+em {
+	/*bringing italics back to the em element*/
+	font-style:italic;
+}
+blockquote,ul,ol,dl {
+	/*giving blockquotes and lists room to breath*/
+	margin:1em;
+}
+ol,ul,dl {
+	/*bringing lists on to the page with breathing room */
+	margin-left:2em;
+}
+ol li {
+	/*giving OL's LIs generated numbers*/
+	list-style: decimal outside;	
+}
+ul li {
+	/*giving UL's LIs generated disc markers*/
+	list-style: disc outside;
+}
+dl dd {
+	/*giving UL's LIs generated numbers*/
+	margin-left:1em;
+}
+th,td {
+	/*borders and padding to make the table readable*/
+	border:1px solid #000;
+	padding:.5em;
+}
+th {
+	/*distinguishing table headers from data cells*/
+	font-weight:bold;
+	text-align:center;
+}
+caption {
+	/*coordinated marking to match cell's padding*/
+	margin-bottom:.5em;
+	/*centered so it doesn't blend in to other content*/
+	text-align:center;
+}
+p,fieldset,table {
+	/*so things don't run into each other*/
+	margin-bottom:1em;
+}
+
+/* Style */
+html { background-color: #eaeaea; }
+
+#mainwrapper {
+	font: 10pt normal Arial, sans-serif;
+	height: auto;
+	margin: 80px auto 0 auto;
+	text-align: center;
+	width: 1000px;
+}
+
+@media (min-width: 500px) {
+	#mainwrapper  {
+	width: 500px;
+	}	
+}
+
+@media (min-width: 1000px) {
+	#mainwrapper {
+	width: 1000px;
+	}
+}
+
+@media (min-width: 1500px) {
+	#mainwrapper {
+	width: 1500px;
+	}
+}
+
+
+/* Image Box Style */
+#mainwrapper .box {
+	border: 5px solid #fff !important;
+	cursor: pointer;
+	height: 272px !important;
+	float: left;
+	margin: 5px;
+	position: relative;
+	overflow: hidden;
+	width: 480px !important;
+		-webkit-box-shadow: 1px 1px 1px 1px #ccc;
+		-moz-box-shadow: 1px 1px 1px 1px #ccc;
+		box-shadow: 1px 1px 1px 1px #ccc;
+					
+}
+
+#mainwrapper .box img {
+	position: absolute;
+	left: 0;
+		-webkit-transition: all 300ms ease-out;
+		-moz-transition: all 300ms ease-out;
+		-o-transition: all 300ms ease-out;
+		-ms-transition: all 300ms ease-out;	
+	transition: all 300ms ease-out;
+}
+
+/* Caption Common Style */
+#mainwrapper .box .caption {
+	background-color: rgba(0,0,0,1);
+	position: absolute;
+	background-repeat: no-repeat;
+	top: 0;
+	left: 0;
+	color: #fff;
+	z-index: 99;
+		-webkit-transition: all 300ms ease-out;
+		-moz-transition: all 300ms ease-out;
+		-o-transition: all 300ms ease-out;
+		-ms-transition: all 300ms ease-out;	
+		transition: all 300ms ease-out;
+}
+
+#mainwrapper .box .cap-1 {
+	background-image: url("001.gif");
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+#mainwrapper .box .cap-2 {
+	background-image: url("002.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+	}
+#mainwrapper .box .cap-3 {
+	background-image: url("003.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+	}
+#mainwrapper .box .cap-4 {
+	background-image: url("004.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+#mainwrapper .box .cap-5 {
+	background-image: url("005.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+#mainwrapper .box .cap-6 {
+	background-image: url("006.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-7 {
+	background-image: url("007.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-8 {
+	background-image: url("008.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+	
+#mainwrapper .box .cap-9 {
+	background-image: url("009.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-10 {
+	background-image: url("010.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-11 {
+	background-image: url("011.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-12 {
+	background-image: url("012.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-13 {
+	background-image: url("013.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-14 {
+	background-image: url("014.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-15 {
+	background-image: url("015.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-16 {
+	background-image: url("016.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-17 {
+	background-image: url("017.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-18 {
+	background-image: url("018.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-19{
+	background-image: url("019.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+#mainwrapper .box .cap-20 {
+	background-image: url("020.gif") ;
+	background-size: cover;
+
+	
+	-webkit-filter: blur(0px) grayscale(0.1) brightness(0.9);
+}
+
+
+#mainwrapper .box .caption p{
+	background-color: rgba(0,0,0,0.5) !important;
+	width: 480px;
+	height: 60px;
+	display: block;
+	bottom: -220px;
+	;line-height: 10pt;
+	text-align: left;
+	position: relative;
+	font-weight:bold;
+	}
+
+
+
+/** Caption 3: Fade **/
+#mainwrapper .box .fade-caption, #mainwrapper .box .scale-caption  {
+	opacity: 0;
+	width: 480px;
+	height: 272px;
+	text-align: left;
+	padding: 0px;
+}
+
+}
+
+
+
+
+/** Simple Caption :hover Behaviour **/
+#mainwrapper .box:hover .simple-caption {
+	-moz-transform: translateY(-100%);
+	-o-transform: translateY(-100%);
+	-webkit-transform: translateY(-100%);
+	opacity: 1;
+	transform: translateY(-100%);
+}
+
+/** Full Caption :hover Behaviour **/
+#mainwrapper .box:hover .full-caption {
+	-moz-transform: translateY(100%);
+	-o-transform: translateY(100%);
+	-webkit-transform: translateY(100%);
+	opacity: 1;
+	transform: translateY(100%);
+}
+
+/** Fade Caption :hover Behaviour **/
+#mainwrapper .box:hover .fade-caption, #mainwrapper .box:hover .scale-caption  {
+	opacity: 1;
+}
+
+/** Slide Caption :hover Behaviour **/
+#mainwrapper .box:hover .slide-caption {
+	background-color: rgba(0,0,0,1) !important;
+	-moz-transform: translateX(-100%);
+	-o-transform: translateX(-100%);
+	-webkit-transform: translateX(-100%);
+	opacity: 1;
+	transform: translateX(-100%);
+}
+
+
+#mainwrapper .box:hover .scale-caption h3, #mainwrapper .box:hover .scale-caption p {
+	-moz-transform: translateX(200px);
+	-o-transform: translateX(200px);
+	-webkit-transform: translateX(200px);
+	transform: translateX(200px);
+}
